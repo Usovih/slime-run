@@ -1223,3 +1223,26 @@ drawMenuSlime();
 instructionOverlay.classList.remove('hidden');
 
 gameLoop();
+const exitBtn = document.getElementById("exitBtn");
+
+// кнопка выхода
+exitBtn.addEventListener("click", exitGame);
+
+// выход по Esc
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        exitGame();
+    }
+});
+
+function exitGame() {
+
+    // если игра в Telegram WebApp
+    if (window.Telegram && Telegram.WebApp) {
+        Telegram.WebApp.close();
+    } 
+    else {
+        // обычный браузер
+        window.close();
+    }
+}
