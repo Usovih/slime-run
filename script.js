@@ -1224,31 +1224,91 @@ instructionOverlay.classList.remove('hidden');
 
 gameLoop();
 // КНОПКА ВЫХОДА - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// ── КНОПКА ВЫХОДА ИСПРАВЛЕННАЯ ──
 const exitBtn = document.getElementById("exitBtn");
 
-// Функция выхода
 function exitGame() {
-    // если игра в Telegram WebApp
-    if (window.Telegram && Telegram.WebApp) {
-        Telegram.WebApp.close();
-    } 
-    else {
-        // обычный браузер
-        // Пробуем закрыть окно (может не сработать из-за политик браузера)
-        window.close();
-        // Показываем сообщение как запасной вариант
-        alert('Игра закрыта. Вы можете закрыть вкладку.');
+    // Проверяем, открыто ли приложение в Telegram
+    if (window.Telegram?.WebApp) {
+        // В Telegram Mini Apps нельзя программно закрыть приложение,
+        // но можно показать диалог подтверждения закрытия
+        Telegram.WebApp.showPopup({
+            title: 'Выход из игры',
+            message: 'Вы действительно хотите закрыть игру?',
+            buttons: [
+                { id: 'close', type: 'default', text: 'Закрыть' },
+                { id: 'cancel', type: 'cancel', text: 'Отмена' }
+            ]
+        }, (buttonId) => {
+            if (buttonId === 'close') {
+                // Закрываем WebView (работает в Telegram)
+                Telegram.WebApp.close();
+            }
+        });
+    } else {
+        // В браузере - просто закрываем или показываем сообщение
+        if (confirm('Закрыть игру?')) {
+            window.close();
+            // Если window.close() не сработал (из-за политик браузера)
+            setTimeout(() => {
+                alert('Закройте эту вкладку вручную');
+            }, 100);
+        }
     }
 }
 
-// клик по кнопке
+// Добавляем обработчик на кнопку
 if (exitBtn) {
-    exitBtn.addEventListener("click", exitGame);
+    exitBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        exitGame();
+    });
 }
 
-// выход по Esc
+// Добавляем обработчик на клавишу Escape
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+        e.preventDefault();
         exitGame();
     }
 });
+
+// Для мобильных устройств добавляем обработчик свайпа
+let touchStartX = 0;
+let touchStartY = 0;
+
+document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+    if (!touchStartX) return;
+    
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    
+    const dx = touchEndX - touchStartX;
+    const dy = touchEndY - touchStartY;
+    
+    // Если свайп вправо (игрок хочет выйти)
+    if (Math.abs(dx) > 100 && Math.abs(dy) < 50 && dx > 0) {
+        // Свайп вправо - показываем диалог выхода
+        if (gameState !== 'playing') {
+            exitGame();
+        }
+    }
+    
+    touchStartX = 0;
+    touchStartY = 0;
+}, { passive: true });
+
+// Добавляем обработчик на кнопку "Назад" в Android
+if (window.Telegram?.WebApp) {
+    Telegram.WebApp.onEvent('backButtonClicked', () => {
+        exitGame();
+    });
+    
+    // Показываем кнопку "Назад" в Telegram
+    Telegram.WebApp.BackButton.show();
+}
