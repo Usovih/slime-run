@@ -1224,28 +1224,34 @@ instructionOverlay.classList.remove('hidden');
 
 gameLoop();
 // КНОПКА ВЫХОДА - ИСПРАВЛЕННАЯ ВЕРСИЯ
-// ── КНОПКА ВЫХОДА ИСПРАВЛЕННАЯ ──
-// ── КНОПКА ВЫХОДА ──
 const exitBtn = document.getElementById("exitBtn");
 
-// Проверяем, запущено ли приложение в Telegram
-const isTelegram = window.Telegram?.WebApp !== undefined;
-
-// Если в Telegram - скрываем кнопку выхода
-if (isTelegram && exitBtn) {
-    exitBtn.style.display = 'none';
+// Функция выхода
+function exitGame() {
+    // если игра в Telegram WebApp
+    if (window.Telegram && Telegram.WebApp) {
+        Telegram.WebApp.close();
+    } 
+    else {
+        // обычный браузер
+        // Пробуем закрыть окно (может не сработать из-за политик браузера)
+        window.close();
+        // Показываем сообщение как запасной вариант
+        alert('Игра закрыта. Вы можете закрыть вкладку.');
+    }
 }
 
-function exitGame() {
-    if (!isTelegram) {
-        // В браузере - работаем как обычно
-        if (confirm('Закрыть игру?')) {
-            window.close();
-            setTimeout(() => {
-                alert('Закройте эту вкладку вручную');
-            }, 100);
-        }
+// клик по кнопке
+if (exitBtn) {
+    exitBtn.addEventListener("click", exitGame);
+}
+
+// выход по Esc
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        exitGame();
     }
+});
     // В Telegram ничего не делаем
 }
 
