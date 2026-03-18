@@ -1225,36 +1225,43 @@ instructionOverlay.classList.remove('hidden');
 gameLoop();
 // КНОПКА ВЫХОДА - ИСПРАВЛЕННАЯ ВЕРСИЯ
 // ── КНОПКА ВЫХОДА ИСПРАВЛЕННАЯ ──
+// ── КНОПКА ВЫХОДА ──
 const exitBtn = document.getElementById("exitBtn");
 
+// Проверяем, запущено ли приложение в Telegram
+const isTelegram = window.Telegram?.WebApp !== undefined;
+
+// Если в Telegram - скрываем кнопку выхода
+if (isTelegram && exitBtn) {
+    exitBtn.style.display = 'none';
+}
+
 function exitGame() {
-    // Проверяем, открыто ли приложение в Telegram
-    if (window.Telegram?.WebApp) {
-        // В Telegram Mini Apps нельзя программно закрыть приложение,
-        // но можно показать диалог подтверждения закрытия
-        Telegram.WebApp.showPopup({
-            title: 'Выход из игры',
-            message: 'Вы действительно хотите закрыть игру?',
-            buttons: [
-                { id: 'close', type: 'default', text: 'Закрыть' },
-                { id: 'cancel', type: 'cancel', text: 'Отмена' }
-            ]
-        }, (buttonId) => {
-            if (buttonId === 'close') {
-                // Закрываем WebView (работает в Telegram)
-                Telegram.WebApp.close();
-            }
-        });
-    } else {
-        // В браузере - просто закрываем или показываем сообщение
+    if (!isTelegram) {
+        // В браузере - работаем как обычно
         if (confirm('Закрыть игру?')) {
             window.close();
-            // Если window.close() не сработал (из-за политик браузера)
             setTimeout(() => {
                 alert('Закройте эту вкладку вручную');
             }, 100);
         }
     }
+    // В Telegram ничего не делаем
+}
+
+// Добавляем обработчик только если не в Telegram
+if (!isTelegram && exitBtn) {
+    exitBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        exitGame();
+    });
+    
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            e.preventDefault();
+            exitGame();
+        }
+    });
 }
 
 // Добавляем обработчик на кнопку
