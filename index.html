@@ -9,7 +9,6 @@
 </head>
 <body>
     <div class="game-container">
-        <button id="exitBtn" class="exit-btn">✕</button>
         <!-- Шапка -->
         <div class="game-header">
             <div class="player-greeting" id="playerGreeting"></div>
@@ -18,6 +17,8 @@
                 <span class="score-item">⭐ <span id="highScore">0</span></span>
                 <span class="score-item currency">🪙 <span id="coinsCount">0</span></span>
             </div>
+            <!-- Кнопка выхода перенесена в шапку -->
+            <button id="exitBtn" class="exit-btn" aria-label="Закрыть игру">✕</button>
         </div>
 
         <!-- Canvas -->
