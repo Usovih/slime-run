@@ -1223,92 +1223,168 @@ drawMenuSlime();
 instructionOverlay.classList.remove('hidden');
 
 gameLoop();
-// КНОПКА ВЫХОДА - ИСПРАВЛЕННАЯ ВЕРСИЯ
+
 // ── КНОПКА ВЫХОДА ИСПРАВЛЕННАЯ ──
 const exitBtn = document.getElementById("exitBtn");
 
+// Проверяем, запущено ли приложение в Telegram
+const isTelegram = window.Telegram?.WebApp !== undefined;
+
+// Функция выхода
 function exitGame() {
-    // Проверяем, открыто ли приложение в Telegram
-    if (window.Telegram?.WebApp) {
-        // В Telegram Mini Apps нельзя программно закрыть приложение,
-        // но можно показать диалог подтверждения закрытия
-        Telegram.WebApp.showPopup({
-            title: 'Выход из игры',
-            message: 'Вы действительно хотите закрыть игру?',
-            buttons: [
-                { id: 'close', type: 'default', text: 'Закрыть' },
-                { id: 'cancel', type: 'cancel', text: 'Отмена' }
-            ]
-        }, (buttonId) => {
-            if (buttonId === 'close') {
-                // Закрываем WebView (работает в Telegram)
-                Telegram.WebApp.close();
-            }
-        });
+    console.log("Выход из игры"); // для отладки
+    
+    if (isTelegram) {
+        // В Telegram Mini Apps
+        if (window.Telegram?.WebApp) {
+            // Показываем диалог подтверждения
+            Telegram.WebApp.showPopup({
+                title: 'Выход из игры',
+                message: 'Закрыть приложение?',
+                buttons: [
+                    { id: 'close', type: 'default', text: 'Да' },
+                    { id: 'cancel', type: 'cancel', text: 'Нет' }
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'close') {
+                    // Пробуем закрыть
+                    Telegram.WebApp.close();
+                }
+            });
+        }
     } else {
-        // В браузере - просто закрываем или показываем сообщение
+        // В браузере
         if (confirm('Закрыть игру?')) {
+            // Пытаемся закрыть окно
             window.close();
-            // Если window.close() не сработал (из-за политик браузера)
+            
+            // Если не получилось (обычно так и бывает)
             setTimeout(() => {
-                alert('Закройте эту вкладку вручную');
+                document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial; background: #0a0a1a; color: white;"><div style="text-align: center;"><h2>Игра закрыта</h2><p>Вы можете закрыть эту вкладку</p></div></div>';
             }, 100);
         }
     }
 }
 
-// Добавляем обработчик на кнопку
+// Обработчик клика по кнопке
 if (exitBtn) {
-    exitBtn.addEventListener("click", (e) => {
+    exitBtn.addEventListener("click", function(e) {
         e.preventDefault();
+        e.stopPropagation();
         exitGame();
     });
 }
 
-// Добавляем обработчик на клавишу Escape
-document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
+// Обработчик клавиши Escape (улучшенная версия)
+document.addEventListener('keydown', function(e) {
+    // Проверяем именно клавишу Escape
+    if (e.key === 'Escape' || e.keyCode === 27) {
         e.preventDefault();
-        exitGame();
+        e.stopPropagation();
+        
+        console.log('Escape нажата'); // для отладки
+        
+        // Если игра не активна или мы в меню - выходим
+        if (gameState !== 'playing' || document.querySelector('.overlay:not(.hidden)')) {
+            exitGame();
+        } else {
+            // Если игра активна - показываем диалог паузы/выхода
+            if (isTelegram) {
+                Telegram.WebApp.showPopup({
+                    title: 'Пауза',
+                    message: 'Выйти из игры?',
+                    buttons: [
+                        { id: 'exit', type: 'destructive', text: 'Выйти' },
+                        { id: 'cancel', type: 'cancel', text: 'Продолжить' }
+                    ]
+                }, (buttonId) => {
+                    if (buttonId === 'exit') {
+                        exitGame();
+                    }
+                });
+            } else {
+                if (confirm('Выйти из игры?')) {
+                    exitGame();
+                }
+            }
+        }
     }
 });
 
-// Для мобильных устройств добавляем обработчик свайпа
-let touchStartX = 0;
-let touchStartY = 0;
+// Добавляем обработчик на window для надежности
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}, true); // Используем capturing фазу для перехвата
 
-document.addEventListener('touchstart', (e) => {
+// Для мобильных устройств - свайп справа налево для выхода
+let touchStartX = 0;
+let touchEndX = 0;
+
+document.addEventListener('touchstart', function(e) {
     touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
 }, { passive: true });
 
-document.addEventListener('touchend', (e) => {
-    if (!touchStartX) return;
+document.addEventListener('touchend', function(e) {
+    touchEndX = e.changedTouches[0].clientX;
     
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-    
-    const dx = touchEndX - touchStartX;
-    const dy = touchEndY - touchStartY;
-    
-    // Если свайп вправо (игрок хочет выйти)
-    if (Math.abs(dx) > 100 && Math.abs(dy) < 50 && dx > 0) {
-        // Свайп вправо - показываем диалог выхода
-        if (gameState !== 'playing') {
+    // Свайп справа налево (как жест "назад" в Android)
+    if (touchStartX - touchEndX > 100) {
+        e.preventDefault();
+        
+        if (gameState !== 'playing' || document.querySelector('.overlay:not(.hidden)')) {
             exitGame();
+        } else {
+            // Если игра активна - показываем диалог
+            if (isTelegram) {
+                Telegram.WebApp.showPopup({
+                    title: 'Выход',
+                    message: 'Закончить игру?',
+                    buttons: [
+                        { id: 'exit', type: 'destructive', text: 'Выйти' },
+                        { id: 'cancel', type: 'cancel', text: 'Нет' }
+                    ]
+                }, (buttonId) => {
+                    if (buttonId === 'exit') {
+                        exitGame();
+                    }
+                });
+            } else {
+                if (confirm('Выйти из игры?')) {
+                    exitGame();
+                }
+            }
         }
     }
-    
-    touchStartX = 0;
-    touchStartY = 0;
-}, { passive: true });
+}, { passive: false });
 
-// Добавляем обработчик на кнопку "Назад" в Android
-if (window.Telegram?.WebApp) {
-    Telegram.WebApp.onEvent('backButtonClicked', () => {
-        exitGame();
-    });
-    
+// Интеграция с Telegram BackButton
+if (isTelegram) {
     // Показываем кнопку "Назад" в Telegram
     Telegram.WebApp.BackButton.show();
+    
+    // Обработчик нажатия на кнопку "Назад"
+    Telegram.WebApp.onEvent('backButtonClicked', function() {
+        if (gameState !== 'playing' || document.querySelector('.overlay:not(.hidden)')) {
+            exitGame();
+        } else {
+            Telegram.WebApp.showPopup({
+                title: 'Пауза',
+                message: 'Выйти из игры?',
+                buttons: [
+                    { id: 'exit', type: 'destructive', text: 'Выйти' },
+                    { id: 'cancel', type: 'cancel', text: 'Продолжить' }
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'exit') {
+                    exitGame();
+                }
+            });
+        }
+    });
 }
+
+// Для отладки - выводим сообщение о готовности
+console.log('Обработчики событий инициализированы');
