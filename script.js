@@ -123,7 +123,7 @@ let player = {
     isJumping: false,
     hasShield: false,
     shieldTimer: 0,
-    squash: 1,      // визуальный squash
+    squash: 1,
     squashVy: 0,
 };
 
@@ -169,7 +169,6 @@ function initBg() {
 }
 
 function drawBg() {
-    // Небо — градиент
     const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
     skyGrad.addColorStop(0,   '#0d0d2b');
     skyGrad.addColorStop(0.6, '#1a1a40');
@@ -177,9 +176,7 @@ function drawBg() {
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Звёзды (только верхняя часть)
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    // Используем frame как seed для стабильных позиций
     const starSeed = 42;
     for (let i = 0; i < 40; i++) {
         const sx = ((i * 137 + starSeed) % canvas.width);
@@ -190,7 +187,6 @@ function drawBg() {
     }
     ctx.globalAlpha = 1;
 
-    // Слои параллакса
     for (let layer of bgLayers) {
         const baseY = canvas.height * layer.y;
         for (let item of layer.items) {
@@ -204,7 +200,6 @@ function drawBg() {
                 ctx.closePath();
                 ctx.fill();
             } else {
-                // облако
                 ctx.beginPath();
                 ctx.ellipse(item.x, baseY, item.size, item.size * 0.5, 0, 0, Math.PI * 2);
                 ctx.fill();
@@ -231,24 +226,24 @@ function updateBg() {
     }
 }
 
-// ── Земля ──
+function groundY() {
+    return canvas.height - 90;
+}
+
 function drawGround() {
     const gY = groundY();
-    // Земля
     const groundGrad = ctx.createLinearGradient(0, gY + 20, 0, canvas.height);
     groundGrad.addColorStop(0, '#3d2010');
     groundGrad.addColorStop(1, '#1a0a05');
     ctx.fillStyle = groundGrad;
     ctx.fillRect(0, gY + 20, canvas.width, canvas.height - gY - 20);
 
-    // Трава
     const grassGrad = ctx.createLinearGradient(0, gY + 10, 0, gY + 25);
     grassGrad.addColorStop(0, '#4a8c2a');
     grassGrad.addColorStop(1, '#2d5c18');
     ctx.fillStyle = grassGrad;
     ctx.fillRect(0, gY + 10, canvas.width, 15);
 
-    // Линия
     ctx.strokeStyle = '#6ab83a';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -257,11 +252,6 @@ function drawGround() {
     ctx.stroke();
 }
 
-function groundY() {
-    return canvas.height - 90;
-}
-
-// ── Слизень ──
 function drawSlime(x, y, w, h, opts = {}) {
     const { isSad = false, eyeStyle = 'default', color = '#7cc46b', hasShield = false, squash = 1 } = opts;
     const cx = x + w / 2;
@@ -272,7 +262,6 @@ function drawSlime(x, y, w, h, opts = {}) {
     ctx.save();
     ctx.translate(cx, cy);
 
-    // Тело
     if (color === 'rainbow') {
         const g = ctx.createLinearGradient(-rx, -ry, rx, ry);
         g.addColorStop(0,   '#ff4444');
@@ -293,13 +282,11 @@ function drawSlime(x, y, w, h, opts = {}) {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Блик
     ctx.fillStyle = 'rgba(255,255,255,0.25)';
     ctx.beginPath();
     ctx.ellipse(-rx * 0.2, -ry * 0.3, rx * 0.35, ry * 0.2, -0.3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Щит
     if (hasShield) {
         ctx.strokeStyle = '#00d4ff';
         ctx.lineWidth = 3;
@@ -311,30 +298,25 @@ function drawSlime(x, y, w, h, opts = {}) {
         ctx.shadowBlur = 0;
     }
 
-    // Глаза
     const eyeOffX = rx * 0.3;
     const eyeOffY = -ry * 0.15;
     const eyeR    = rx * 0.18;
 
     if (eyeStyle === 'cool') {
-        // очки-слоты
         ctx.fillStyle = '#111';
         ctx.fillRect(-rx * 0.55, eyeOffY - eyeR * 0.6, rx * 0.38, eyeR * 1.2);
         ctx.fillRect(rx * 0.15,  eyeOffY - eyeR * 0.6, rx * 0.38, eyeR * 1.2);
     } else {
-        // белки
         ctx.fillStyle = 'white';
         ctx.beginPath(); ctx.arc(-eyeOffX, eyeOffY, eyeR, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc( eyeOffX, eyeOffY, eyeR, 0, Math.PI*2); ctx.fill();
 
-        // зрачки
         const pupilColor = eyeStyle === 'angry' ? '#c00' : (eyeStyle === 'scared' ? '#44f' : '#222');
         const pupilOff   = isSad ? 0 : eyeR * 0.15;
         ctx.fillStyle = pupilColor;
         ctx.beginPath(); ctx.arc(-eyeOffX, eyeOffY + pupilOff, eyeR * 0.55, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc( eyeOffX, eyeOffY + pupilOff, eyeR * 0.55, 0, Math.PI*2); ctx.fill();
 
-        // сердитые брови
         if (eyeStyle === 'angry') {
             ctx.strokeStyle = '#700'; ctx.lineWidth = 2.5;
             ctx.beginPath();
@@ -348,7 +330,6 @@ function drawSlime(x, y, w, h, opts = {}) {
         }
     }
 
-    // Рот
     ctx.strokeStyle = 'rgba(0,0,0,0.5)';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -418,7 +399,6 @@ function drawObstacle(obs) {
             ctx.beginPath();
             ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 6);
             ctx.fill();
-            // трещины
             ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(obs.x + obs.width*0.3, obs.y + 4);
@@ -445,12 +425,9 @@ function drawObstacle(obs) {
         }
         case 'cactus': {
             ctx.fillStyle = '#27ae60';
-            // ствол
             ctx.fillRect(obs.x + obs.width*0.35, obs.y, obs.width*0.3, obs.height);
-            // ветки
             ctx.fillRect(obs.x, obs.y + obs.height*0.35, obs.width*0.4, obs.height*0.12);
             ctx.fillRect(obs.x + obs.width*0.6, obs.y + obs.height*0.5, obs.width*0.4, obs.height*0.12);
-            // шипы
             ctx.fillStyle = '#1e8449';
             ctx.fillRect(obs.x + obs.width*0.3, obs.y + 2, obs.width*0.4, 6);
             break;
@@ -461,7 +438,6 @@ function drawObstacle(obs) {
             ctx.shadowColor = '#a855f7';
             ctx.shadowBlur = 12;
             ctx.beginPath();
-            // UFO-ок
             ctx.ellipse(obs.x + obs.width/2, floatY + obs.height/2, obs.width/2, obs.height/2, 0, 0, Math.PI*2);
             ctx.fill();
             ctx.shadowBlur = 0;
@@ -469,7 +445,6 @@ function drawObstacle(obs) {
             ctx.beginPath();
             ctx.ellipse(obs.x + obs.width/2, floatY + obs.height*0.3, obs.width*0.3, obs.height*0.25, 0, 0, Math.PI*2);
             ctx.fill();
-            // сохраняем реальный y для коллизий
             obs._floatY = floatY;
             break;
         }
@@ -487,7 +462,6 @@ function getObsHitbox(obs) {
     return { x: obs.x + margin, y: obs.y + margin, width: obs.width - margin*2, height: obs.height - margin*2 };
 }
 
-// ── Монеты ──
 function spawnCoin() {
     if (Math.random() > 0.45) return;
     const gY = groundY();
@@ -527,7 +501,6 @@ function drawCoin(coin) {
     ctx.textBaseline = 'alphabetic';
 }
 
-// ── Частицы ──
 function spawnParticles(x, y, color, count = 8, type = 'burst') {
     for (let i = 0; i < count; i++) {
         const angle = (Math.PI * 2 / count) * i + Math.random() * 0.4;
@@ -587,7 +560,6 @@ function drawParticles() {
     ctx.globalAlpha = 1;
 }
 
-// ── Текст "+N" при сборе монеты ──
 let floatTexts = [];
 
 function spawnFloatText(x, y, text, color = '#f5d742') {
@@ -615,7 +587,6 @@ function drawFloatTexts() {
     ctx.textAlign = 'left';
 }
 
-// ── Коллизии ──
 function detectCollision(a, b) {
     return a.x < b.x + b.width  &&
            a.x + a.width > b.x  &&
@@ -633,7 +604,6 @@ function getPlayerHitbox() {
     };
 }
 
-// ── Физика ──
 function jump(pressDuration = 1.0) {
     if (gameState !== 'playing') return;
     const canJump = player.grounded || (upgrades.doubleJump.level > 0 && player.jumpCount < 2);
@@ -656,7 +626,6 @@ function jump(pressDuration = 1.0) {
     }
 }
 
-// ── Комбо ──
 function addCombo() {
     combo++;
     comboTimer = COMBO_TIMEOUT;
@@ -684,7 +653,6 @@ function updateComboDisplay() {
     }
 }
 
-// ── Магнит ──
 function applyMagnet() {
     const hasMagnet = upgrades.coinMagnet.level > 0 || magnetTimer > 0;
     if (!hasMagnet) return;
@@ -700,29 +668,24 @@ function applyMagnet() {
     if (magnetTimer > 0) magnetTimer--;
 }
 
-// ── Обновление игры ──
 function updateGame() {
     if (gameState !== 'playing') return;
 
-    // Щит
     if (player.hasShield && player.shieldTimer > 0) {
         player.shieldTimer--;
     } else if (player.shieldTimer <= 0) {
         player.hasShield = false;
     }
 
-    // Комбо таймер
     if (comboTimer > 0) {
         comboTimer--;
         if (comboTimer === 0) resetCombo();
     }
 
-    // Гравитация
     const grav = upgrades.gravity.getValue();
     player.vy += grav;
     player.y  += player.vy;
 
-    // Squash & stretch
     if (!player.grounded) {
         player.squash += (1 - player.squash) * 0.15;
         if (player.vy < 0) player.squash = Math.max(0.75, player.squash);
@@ -746,7 +709,6 @@ function updateGame() {
         player.grounded = false;
     }
 
-    // Препятствия
     const speed = upgrades.speed.getValue() + Math.min(frame / 600, 3);
     for (let i = obstacles.length - 1; i >= 0; i--) {
         const obs = obstacles[i];
@@ -761,7 +723,6 @@ function updateGame() {
         }
     }
 
-    // Монеты
     for (let i = coins.length - 1; i >= 0; i--) {
         const coin = coins[i];
         coin.x -= speed;
@@ -771,7 +732,6 @@ function updateGame() {
     applyMagnet();
     updateBg();
 
-    // Коллизии с препятствиями
     const ph = getPlayerHitbox();
     for (let obs of obstacles) {
         const oh = getObsHitbox(obs);
@@ -789,7 +749,6 @@ function updateGame() {
         }
     }
 
-    // Сбор монет
     for (let i = coins.length - 1; i >= 0; i--) {
         const coin = coins[i];
         if (detectCollision(ph, { x: coin.x, y: coin.y, width: coin.width, height: coin.height })) {
@@ -805,7 +764,6 @@ function updateGame() {
         }
     }
 
-    // Спавн
     frame++;
     const spawnInterval = Math.max(38, 80 - Math.floor(speed * 3));
     if (frame % spawnInterval === 0) {
@@ -817,7 +775,6 @@ function updateGame() {
     updateFloatTexts();
 }
 
-// ── Отрисовка ──
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -841,14 +798,12 @@ function draw() {
     drawFloatTexts();
 }
 
-// ── Игровой цикл ──
 function gameLoop() {
     if (gameState === 'playing') updateGame();
     draw();
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// ── Сброс ──
 function resetGame() {
     score = 0;
     sessionEarnedCoins = 0;
@@ -863,528 +818,4 @@ function resetGame() {
     floatTexts = [];
     magnetTimer = 0;
 
-    const gY = groundY();
-    player.y         = gY + 15 - player.height;
-    player.vy        = 0;
-    player.grounded  = true;
-    player.isJumping = false;
-    player.jumpCount = 0;
-    player.squash    = 1;
-    player.hasShield = upgrades.shield.level > 0;
-    player.shieldTimer = player.hasShield ? 9999 : 0;
-
-    updateScore();
-    updateCurrencyDisplay();
-    updateComboDisplay();
-    initBg();
-}
-
-function updateScore() {
-    scoreSpan.textContent = score;
-    if (score > highScore) {
-        highScore = score;
-        localStorage.setItem('slimeRunHighScore', highScore);
-        highScoreSpan.textContent = highScore;
-    }
-}
-
-function updateCurrencyDisplay() {
-    coinsSpan.textContent = playerCurrency;
-    if (shopCoinsSpan) shopCoinsSpan.textContent = playerCurrency;
-}
-
-function gameOver() {
-    gameState = 'gameOver';
-    finalScoreSpan.textContent   = score;
-    finalHighScoreSpan.textContent = highScore;
-    earnedCoinsSpan.textContent  = sessionEarnedCoins;
-    maxComboSpan.textContent     = maxComboThisRun;
-
-    const isNew = score >= highScore && score > 0;
-    newRecordBadge.classList.toggle('hidden', !isNew);
-
-    const emojis = ['💀', '😵', '🥺', '😱', '☠️'];
-    document.getElementById('gameOverEmoji').textContent = emojis[Math.floor(Math.random() * emojis.length)];
-
-    gameOverOverlay.classList.remove('hidden');
-
-    if (tg) tg.HapticFeedback.notificationOccurred('error');
-
-    spawnParticles(player.x + player.width/2, player.y, SKINS[currentSkin].color === 'rainbow' ? '#ff4' : SKINS[currentSkin].color, 20);
-}
-
-// ── Магазин ──
-function renderShop() {
-    // Улучшения
-    upgradeItemsContainer.innerHTML = '';
-    for (let [key, up] of Object.entries(upgrades)) {
-        const isMax = up.level >= up.maxLevel;
-        const cost  = up.getCost();
-        const canBuy = playerCurrency >= cost && !isMax;
-
-        const item = document.createElement('div');
-        item.className = 'shop-item' + (isMax ? ' max-level' : '') + (!canBuy && !isMax ? ' cant-afford' : '');
-
-        let levelBar = '';
-        if (up.maxLevel > 1) {
-            const pct = (up.level / up.maxLevel) * 100;
-            levelBar = `<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>`;
-        }
-
-        let valueInfo = '';
-        if (key === 'jumpPower') valueInfo = `Сила: ${up.getValue().toFixed(1)}`;
-        else if (key === 'speed') valueInfo = `Скорость: ${up.getValue().toFixed(1)}`;
-        else if (key === 'gravity') valueInfo = `Лёгкость: ${up.getValue().toFixed(2)}`;
-        else if (key === 'coinMagnet') valueInfo = up.level > 0 ? '✅ Активен каждую игру' : 'Притягивает монеты';
-        else if (key === 'shield') valueInfo = up.level > 0 ? '✅ Защита каждую игру' : 'Защита от 1 удара';
-        else if (key === 'doubleJump') valueInfo = up.level > 0 ? '✅ Можно прыгнуть дважды' : 'Прыжок в воздухе';
-
-        item.innerHTML = `
-            <div class="shop-item-icon">${up.icon}</div>
-            <div class="shop-item-info">
-                <strong>${up.label}</strong>
-                <span>${valueInfo}</span>
-                <span>Ур. ${up.level}/${up.maxLevel}</span>
-                ${levelBar}
-            </div>
-            <div class="shop-item-right">
-                <div class="shop-item-price ${isMax ? 'maxed' : ''}">${isMax ? 'MAX' : cost + ' 🪙'}</div>
-            </div>
-        `;
-
-        if (!isMax) {
-            item.addEventListener('click', () => purchaseUpgrade(key));
-        }
-        upgradeItemsContainer.appendChild(item);
-    }
-
-    // Скины
-    skinItemsContainer.innerHTML = '';
-    for (let [key, skin] of Object.entries(SKINS)) {
-        const item = document.createElement('div');
-        item.className = 'shop-item' + (skin.equipped ? ' equipped' : '');
-
-        const priceText = !skin.owned
-            ? `${skin.price} 🪙`
-            : (skin.equipped ? '✓ Надет' : 'Надеть');
-        const priceClass = skin.price === 0 || skin.owned ? 'free' : '';
-
-        item.innerHTML = `
-            <div class="shop-item-icon" style="width:36px;height:36px;position:relative;">
-                <canvas class="skin-mini-canvas" width="36" height="36" data-skin="${key}"></canvas>
-            </div>
-            <div class="shop-item-info">
-                <strong>${skin.label}</strong>
-                <span>${skin.owned ? 'Есть' : skin.price + ' монет'}</span>
-            </div>
-            <div class="shop-item-right">
-                <div class="shop-item-price ${priceClass}">${priceText}</div>
-            </div>
-        `;
-
-        item.addEventListener('click', () => {
-            if (!skin.owned) purchaseSkin(key);
-            else if (!skin.equipped) equipSkin(key);
-            drawSkinPreview(key);
-        });
-
-        item.addEventListener('mouseenter', () => drawSkinPreview(key));
-        item.addEventListener('touchstart', () => drawSkinPreview(key), { passive: true });
-
-        skinItemsContainer.appendChild(item);
-    }
-
-    // Рисуем мини-превью для каждого скина
-    requestAnimationFrame(() => {
-        for (let [key] of Object.entries(SKINS)) {
-            const c = document.querySelector(`.skin-mini-canvas[data-skin="${key}"]`);
-            if (!c) continue;
-            const sctx = c.getContext('2d');
-            sctx.clearRect(0, 0, 36, 36);
-            const s = SKINS[key];
-            drawSlimeOnCtx(sctx, 1, 1, 34, 34, { eyeStyle: s.eyeStyle, color: s.color });
-        }
-    });
-
-    // Превью текущего/выбранного
-    drawSkinPreview(currentSkin);
-}
-
-function drawSlimeOnCtx(targetCtx, x, y, w, h, opts = {}) {
-    const { eyeStyle = 'default', color = '#7cc46b' } = opts;
-    const cx = x + w/2, cy = y + h/2, rx = w/2, ry = h/2;
-
-    targetCtx.save();
-    targetCtx.translate(cx, cy);
-
-    if (color === 'rainbow') {
-        const g = targetCtx.createLinearGradient(-rx, -ry, rx, ry);
-        g.addColorStop(0, '#ff4'); g.addColorStop(0.5, '#4f4'); g.addColorStop(1, '#44f');
-        targetCtx.fillStyle = g;
-    } else {
-        targetCtx.fillStyle = color;
-    }
-
-    targetCtx.beginPath();
-    targetCtx.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2);
-    targetCtx.fill();
-
-    // Глаза
-    targetCtx.fillStyle = 'white';
-    targetCtx.beginPath(); targetCtx.arc(-rx*0.3, -ry*0.15, rx*0.18, 0, Math.PI*2); targetCtx.fill();
-    targetCtx.beginPath(); targetCtx.arc( rx*0.3, -ry*0.15, rx*0.18, 0, Math.PI*2); targetCtx.fill();
-    targetCtx.fillStyle = '#222';
-    targetCtx.beginPath(); targetCtx.arc(-rx*0.3, -ry*0.1, rx*0.09, 0, Math.PI*2); targetCtx.fill();
-    targetCtx.beginPath(); targetCtx.arc( rx*0.3, -ry*0.1, rx*0.09, 0, Math.PI*2); targetCtx.fill();
-
-    targetCtx.restore();
-}
-
-function drawSkinPreview(skinKey) {
-    const s = SKINS[skinKey];
-    skinPreviewCtx.clearRect(0, 0, 80, 80);
-    drawSlimeOnCtx(skinPreviewCtx, 5, 5, 70, 70, { eyeStyle: s.eyeStyle, color: s.color });
-}
-
-function purchaseUpgrade(key) {
-    const up = upgrades[key];
-    if (up.level >= up.maxLevel) return;
-    const cost = up.getCost();
-    if (playerCurrency < cost) {
-        if (tg) tg.HapticFeedback.notificationOccurred('error');
-        return;
-    }
-    playerCurrency -= cost;
-    up.level++;
-    localStorage.setItem(`upgrade_${key}`, up.level);
-    localStorage.setItem('slimeRunCurrency', playerCurrency);
-    updateCurrencyDisplay();
-    renderShop();
-    vibrate();
-    if (tg) tg.HapticFeedback.notificationOccurred('success');
-}
-
-function purchaseSkin(key) {
-    const skin = SKINS[key];
-    if (playerCurrency < skin.price) return;
-    playerCurrency -= skin.price;
-    skin.owned = true;
-    localStorage.setItem(`skin_${key}`, '1');
-    localStorage.setItem('slimeRunCurrency', playerCurrency);
-    equipSkin(key);
-    updateCurrencyDisplay();
-    renderShop();
-    vibrate();
-}
-
-function equipSkin(key) {
-    for (let [k, s] of Object.entries(SKINS)) {
-        s.equipped = false;
-        localStorage.setItem(`skin_${k}_equipped`, '0');
-    }
-    SKINS[key].equipped = true;
-    currentSkin = key;
-    localStorage.setItem(`skin_${key}_equipped`, '1');
-    renderShop();
-}
-
-// ── Ежедневная награда ──
-function checkDailyReward() {
-    const lastLogin = localStorage.getItem('lastLogin');
-    const today = new Date().toDateString();
-    if (lastLogin === today) return;
-
-    const bonus = 50;
-    playerCurrency += bonus;
-    localStorage.setItem('slimeRunCurrency', playerCurrency);
-    localStorage.setItem('lastLogin', today);
-    updateCurrencyDisplay();
-
-    if (tg) {
-        tg.showPopup({
-            title: '🎁 Ежедневная награда!',
-            message: `+${bonus} 🪙 за вход! Возвращайся завтра.`,
-            buttons: [{ type: 'ok' }]
-        });
-    }
-}
-
-// ── Вибрация ──
-function vibrate(ms = 20) {
-    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-}
-
-// ── Тач-обработчики ──
-let touchStartTime = 0;
-
-function handleStart(e) {
-    e.preventDefault();
-    if (gameState !== 'playing') return;
-    touchStartTime = Date.now();
-}
-
-function handleEnd(e) {
-    e.preventDefault();
-    if (gameState !== 'playing') return;
-    const duration = (Date.now() - touchStartTime) / 200;
-    jump(Math.min(duration, 1.2));
-}
-
-canvas.addEventListener('touchstart', handleStart, { passive: false });
-canvas.addEventListener('touchend',   handleEnd,   { passive: false });
-canvas.addEventListener('touchcancel',handleEnd,   { passive: false });
-canvas.addEventListener('mousedown',  handleStart);
-canvas.addEventListener('mouseup',    handleEnd);
-
-// ── Табы магазина ──
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const tab = btn.dataset.tab;
-        document.getElementById('upgradesTab').classList.toggle('hidden', tab !== 'upgrades');
-        document.getElementById('skinsTab').classList.toggle('hidden', tab !== 'skins');
-    });
-});
-
-// ── Кнопки ──
-function openShop() {
-    shopOverlay.classList.remove('hidden');
-    renderShop();
-    updateCurrencyDisplay();
-}
-
-function closeShop() {
-    shopOverlay.classList.add('hidden');
-}
-
-startGameBtn.addEventListener('click', () => {
-    instructionOverlay.classList.add('hidden');
-    gameState = 'playing';
-    resetGame();
-});
-
-menuShopBtn.addEventListener('click', () => {
-    instructionOverlay.classList.add('hidden');
-    openShop();
-});
-
-restartGameBtn.addEventListener('click', () => {
-    gameOverOverlay.classList.add('hidden');
-    gameState = 'playing';
-    resetGame();
-});
-
-shopBtn.addEventListener('click', () => {
-    gameOverOverlay.classList.add('hidden');
-    openShop();
-});
-
-closeShopBtn.addEventListener('click', () => {
-    closeShop();
-    // Если пришли из game-over — показываем его снова
-    // (ничего, пусть просто закроется)
-});
-
-// ── Превью слизня в меню ──
-function drawMenuSlime() {
-    const c = document.createElement('canvas');
-    c.width = 80; c.height = 80;
-    const skin = SKINS[currentSkin];
-    const sctx = c.getContext('2d');
-    drawSlimeOnCtx(sctx, 5, 5, 70, 70, { eyeStyle: skin.eyeStyle, color: skin.color });
-    document.getElementById('menuSlime').appendChild(c);
-}
-
-// ── Resize ──
-function resizeCanvas() {
-    const container = canvas.parentElement;
-    canvas.width    = container.clientWidth;
-    canvas.height   = container.clientHeight - document.querySelector('.game-header').offsetHeight;
-    resetGame();
-}
-
-window.addEventListener('resize', resizeCanvas);
-
-// ── Приветствие ──
-if (tg?.initDataUnsafe?.user) {
-    playerGreeting.textContent = `Привет, ${tg.initDataUnsafe.user.first_name}!`;
-} else {
-    playerGreeting.textContent = 'Привет, Слизень!';
-}
-
-// ── Инициализация ──
-resizeCanvas();
-checkDailyReward();
-updateCurrencyDisplay();
-highScoreSpan.textContent = highScore;
-drawMenuSlime();
-
-instructionOverlay.classList.remove('hidden');
-
-gameLoop();
-
-// ── КНОПКА ВЫХОДА ИСПРАВЛЕННАЯ ──
-const exitBtn = document.getElementById("exitBtn");
-
-// Проверяем, запущено ли приложение в Telegram
-const isTelegram = window.Telegram?.WebApp !== undefined;
-
-// Функция выхода
-function exitGame() {
-    console.log("Выход из игры"); // для отладки
-    
-    if (isTelegram) {
-        // В Telegram Mini Apps
-        if (window.Telegram?.WebApp) {
-            // Показываем диалог подтверждения
-            Telegram.WebApp.showPopup({
-                title: 'Выход из игры',
-                message: 'Закрыть приложение?',
-                buttons: [
-                    { id: 'close', type: 'default', text: 'Да' },
-                    { id: 'cancel', type: 'cancel', text: 'Нет' }
-                ]
-            }, (buttonId) => {
-                if (buttonId === 'close') {
-                    // Пробуем закрыть
-                    Telegram.WebApp.close();
-                }
-            });
-        }
-    } else {
-        // В браузере
-        if (confirm('Закрыть игру?')) {
-            // Пытаемся закрыть окно
-            window.close();
-            
-            // Если не получилось (обычно так и бывает)
-            setTimeout(() => {
-                document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial; background: #0a0a1a; color: white;"><div style="text-align: center;"><h2>Игра закрыта</h2><p>Вы можете закрыть эту вкладку</p></div></div>';
-            }, 100);
-        }
-    }
-}
-
-// Обработчик клика по кнопке
-if (exitBtn) {
-    exitBtn.addEventListener("click", function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        exitGame();
-    });
-}
-
-// Обработчик клавиши Escape (улучшенная версия)
-document.addEventListener('keydown', function(e) {
-    // Проверяем именно клавишу Escape
-    if (e.key === 'Escape' || e.keyCode === 27) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        console.log('Escape нажата'); // для отладки
-        
-        // Если игра не активна или мы в меню - выходим
-        if (gameState !== 'playing' || document.querySelector('.overlay:not(.hidden)')) {
-            exitGame();
-        } else {
-            // Если игра активна - показываем диалог паузы/выхода
-            if (isTelegram) {
-                Telegram.WebApp.showPopup({
-                    title: 'Пауза',
-                    message: 'Выйти из игры?',
-                    buttons: [
-                        { id: 'exit', type: 'destructive', text: 'Выйти' },
-                        { id: 'cancel', type: 'cancel', text: 'Продолжить' }
-                    ]
-                }, (buttonId) => {
-                    if (buttonId === 'exit') {
-                        exitGame();
-                    }
-                });
-            } else {
-                if (confirm('Выйти из игры?')) {
-                    exitGame();
-                }
-            }
-        }
-    }
-});
-
-// Добавляем обработчик на window для надежности
-window.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' || e.keyCode === 27) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-}, true); // Используем capturing фазу для перехвата
-
-// Для мобильных устройств - свайп справа налево для выхода
-let touchStartX = 0;
-let touchEndX = 0;
-
-document.addEventListener('touchstart', function(e) {
-    touchStartX = e.touches[0].clientX;
-}, { passive: true });
-
-document.addEventListener('touchend', function(e) {
-    touchEndX = e.changedTouches[0].clientX;
-    
-    // Свайп справа налево (как жест "назад" в Android)
-    if (touchStartX - touchEndX > 100) {
-        e.preventDefault();
-        
-        if (gameState !== 'playing' || document.querySelector('.overlay:not(.hidden)')) {
-            exitGame();
-        } else {
-            // Если игра активна - показываем диалог
-            if (isTelegram) {
-                Telegram.WebApp.showPopup({
-                    title: 'Выход',
-                    message: 'Закончить игру?',
-                    buttons: [
-                        { id: 'exit', type: 'destructive', text: 'Выйти' },
-                        { id: 'cancel', type: 'cancel', text: 'Нет' }
-                    ]
-                }, (buttonId) => {
-                    if (buttonId === 'exit') {
-                        exitGame();
-                    }
-                });
-            } else {
-                if (confirm('Выйти из игры?')) {
-                    exitGame();
-                }
-            }
-        }
-    }
-}, { passive: false });
-
-// Интеграция с Telegram BackButton
-if (isTelegram) {
-    // Показываем кнопку "Назад" в Telegram
-    Telegram.WebApp.BackButton.show();
-    
-    // Обработчик нажатия на кнопку "Назад"
-    Telegram.WebApp.onEvent('backButtonClicked', function() {
-        if (gameState !== 'playing' || document.querySelector('.overlay:not(.hidden)')) {
-            exitGame();
-        } else {
-            Telegram.WebApp.showPopup({
-                title: 'Пауза',
-                message: 'Выйти из игры?',
-                buttons: [
-                    { id: 'exit', type: 'destructive', text: 'Выйти' },
-                    { id: 'cancel', type: 'cancel', text: 'Продолжить' }
-                ]
-            }, (buttonId) => {
-                if (buttonId === 'exit') {
-                    exitGame();
-                }
-            });
-        }
-    });
-}
-
-// Для отладки - выводим сообщение о готовности
-console.log('Обработчики событий инициализированы');
+    const g
