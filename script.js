@@ -1223,10 +1223,28 @@ drawMenuSlime();
 instructionOverlay.classList.remove('hidden');
 
 gameLoop();
+// КНОПКА ВЫХОДА - ИСПРАВЛЕННАЯ ВЕРСИЯ
 const exitBtn = document.getElementById("exitBtn");
 
-// кнопка выхода
-exitBtn.addEventListener("click", exitGame);
+// Функция выхода
+function exitGame() {
+    // если игра в Telegram WebApp
+    if (window.Telegram && Telegram.WebApp) {
+        Telegram.WebApp.close();
+    } 
+    else {
+        // обычный браузер
+        // Пробуем закрыть окно (может не сработать из-за политик браузера)
+        window.close();
+        // Показываем сообщение как запасной вариант
+        alert('Игра закрыта. Вы можете закрыть вкладку.');
+    }
+}
+
+// клик по кнопке
+if (exitBtn) {
+    exitBtn.addEventListener("click", exitGame);
+}
 
 // выход по Esc
 document.addEventListener("keydown", (e) => {
@@ -1234,15 +1252,3 @@ document.addEventListener("keydown", (e) => {
         exitGame();
     }
 });
-
-function exitGame() {
-
-    // если игра в Telegram WebApp
-    if (window.Telegram && Telegram.WebApp) {
-        Telegram.WebApp.close();
-    } 
-    else {
-        // обычный браузер
-        window.close();
-    }
-}
