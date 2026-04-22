@@ -528,7 +528,7 @@ function jump(pressDuration = 1.0) {
     const canJump = player.grounded || (upgrades.doubleJump.level > 0 && player.jumpCount < 2);
     if (!canJump) return;
 
-    vibrate();
+    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
 
     const power = upgrades.jumpPower.getValue();
     const multiplier = Math.min(1.0 + pressDuration * 0.8, 1.8);
@@ -710,10 +710,12 @@ function draw() {
 }
 
 // ── Игровой цикл ──
+let gameLoopId = null;
+
 function gameLoop() {
     if (gameState === 'playing') updateGame();
     draw();
-    animationFrameId = requestAnimationFrame(gameLoop);
+    gameLoopId = requestAnimationFrame(gameLoop);
 }
 
 // ── Сброс ──
@@ -771,11 +773,12 @@ function gameOver() {
     newRecordBadge.classList.toggle('hidden', !isNew);
 
     const emojis = ['💀', '😵', '🥺', '😱', '☠️'];
-    document.getElementById('gameOverEmoji').textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    const emojiSpan = document.getElementById('gameOverEmoji');
+    if (emojiSpan) emojiSpan.textContent = emojis[Math.floor(Math.random() * emojis.length)];
 
     gameOverOverlay.classList.remove('hidden');
 
-    if (tg) tg.HapticFeedback?.notificationOccurred('error');
+    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
     spawnParticles(player.x + player.width / 2, player.y, SKINS[currentSkin].color === 'rainbow' ? '#ff4' : SKINS[currentSkin].color, 20);
 }
 
@@ -845,5 +848,4 @@ function renderShop() {
 
 function purchaseUpgrade(key) {
     const up = upgrades[key];
-    if (up.level >= up.maxLevel) return;
-   
+    if (
