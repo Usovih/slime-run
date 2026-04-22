@@ -124,7 +124,6 @@ let player = {
     hasShield: false,
     shieldTimer: 0,
     squash: 1,
-    squashVy: 0,
 };
 
 // ── Игровые объекты ──
@@ -137,7 +136,6 @@ let bgLayers = [];
 let frame = 0;
 let score = 0;
 let gameSpeed = 5;
-let spawnCounter = 0;
 
 // ── Комбо ──
 let combo = 0;
@@ -344,12 +342,8 @@ function drawSlime(x, y, w, h, opts = {}) {
 }
 
 // ── Препятствия ──
-const OBS_TYPES = ['rock', 'spike', 'cactus', 'flying'];
-
 function spawnObstacle() {
-    const difficulty = Math.min(frame / 1000, 1);
     const rand = Math.random();
-
     let type;
     if (rand < 0.45) type = 'rock';
     else if (rand < 0.75) type = 'spike';
@@ -357,7 +351,6 @@ function spawnObstacle() {
     else type = 'flying';
 
     const gY = groundY();
-
     let obs = { x: canvas.width, type, passed: false };
 
     switch (type) {
@@ -383,99 +376,49 @@ function spawnObstacle() {
             obs.floatOffset = Math.random() * Math.PI * 2;
             break;
     }
-
     obstacles.push(obs);
 }
 
 function drawObstacle(obs) {
-    const gY = groundY();
-
     switch (obs.type) {
-        case 'rock': {
-            const g = ctx.createRadialGradient(obs.x + obs.width*0.4, obs.y + obs.height*0.35, 2, obs.x+obs.width/2, obs.y+obs.height/2, obs.width*0.6);
-            g.addColorStop(0, '#aaa');
-            g.addColorStop(1, '#555');
-            ctx.fillStyle = g;
-            ctx.beginPath();
-            ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 6);
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(obs.x + obs.width*0.3, obs.y + 4);
-            ctx.lineTo(obs.x + obs.width*0.5, obs.y + obs.height*0.6);
-            ctx.stroke();
+        case 'rock':
+            ctx.fillStyle = '#8a8a8a';
+            ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
             break;
-        }
-        case 'spike': {
+        case 'spike':
             ctx.fillStyle = '#c0392b';
             ctx.beginPath();
-            ctx.moveTo(obs.x,              obs.y + obs.height);
+            ctx.moveTo(obs.x, obs.y + obs.height);
             ctx.lineTo(obs.x + obs.width/2, obs.y);
-            ctx.lineTo(obs.x + obs.width,  obs.y + obs.height);
-            ctx.closePath();
-            ctx.fill();
-            ctx.fillStyle = '#e74c3c';
-            ctx.beginPath();
-            ctx.moveTo(obs.x + obs.width*0.2, obs.y + obs.height);
-            ctx.lineTo(obs.x + obs.width*0.5, obs.y + 8);
-            ctx.lineTo(obs.x + obs.width*0.8, obs.y + obs.height);
-            ctx.closePath();
+            ctx.lineTo(obs.x + obs.width, obs.y + obs.height);
             ctx.fill();
             break;
-        }
-        case 'cactus': {
+        case 'cactus':
             ctx.fillStyle = '#27ae60';
             ctx.fillRect(obs.x + obs.width*0.35, obs.y, obs.width*0.3, obs.height);
-            ctx.fillRect(obs.x, obs.y + obs.height*0.35, obs.width*0.4, obs.height*0.12);
-            ctx.fillRect(obs.x + obs.width*0.6, obs.y + obs.height*0.5, obs.width*0.4, obs.height*0.12);
-            ctx.fillStyle = '#1e8449';
-            ctx.fillRect(obs.x + obs.width*0.3, obs.y + 2, obs.width*0.4, 6);
             break;
-        }
-        case 'flying': {
-            const floatY = obs.y + Math.sin(frame * 0.08 + obs.floatOffset) * 6;
+        case 'flying':
             ctx.fillStyle = '#8e44ad';
-            ctx.shadowColor = '#a855f7';
-            ctx.shadowBlur = 12;
-            ctx.beginPath();
-            ctx.ellipse(obs.x + obs.width/2, floatY + obs.height/2, obs.width/2, obs.height/2, 0, 0, Math.PI*2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = 'rgba(180,100,255,0.5)';
-            ctx.beginPath();
-            ctx.ellipse(obs.x + obs.width/2, floatY + obs.height*0.3, obs.width*0.3, obs.height*0.25, 0, 0, Math.PI*2);
-            ctx.fill();
-            obs._floatY = floatY;
+            ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
             break;
-        }
     }
 }
 
 function getObsHitbox(obs) {
-    const margin = 5;
-    if (obs.type === 'flying') {
-        return { x: obs.x + margin, y: (obs._floatY || obs.y) + margin, width: obs.width - margin*2, height: obs.height - margin*2 };
-    }
-    if (obs.type === 'spike') {
-        return { x: obs.x + margin*2, y: obs.y + margin, width: obs.width - margin*4, height: obs.height - margin };
-    }
-    return { x: obs.x + margin, y: obs.y + margin, width: obs.width - margin*2, height: obs.height - margin*2 };
+    return { x: obs.x + 5, y: obs.y + 5, width: obs.width - 10, height: obs.height - 10 };
 }
 
+// ── Монеты ──
 function spawnCoin() {
     if (Math.random() > 0.45) return;
     const gY = groundY();
-    const inCluster = Math.random() < 0.3;
-    const count = inCluster ? 3 : 1;
-    for (let i = 0; i < count; i++) {
-        coins.push({
-            x: canvas.width + i * 28,
-            y: gY - 60 - Math.random() * 50,
-            width: 16, height: 16,
-            value: 3 + Math.floor(Math.random() * 5),
-            wobble: Math.random() * Math.PI * 2
-        });
-    }
+    coins.push({
+        x: canvas.width,
+        y: gY - 60 - Math.random() * 50,
+        width: 16, height: 16,
+        value: 3 + Math.floor(Math.random() * 5),
+        wobble: Math.random() * Math.PI * 2
+    });
 }
 
 function drawCoin(coin) {
@@ -491,45 +434,25 @@ function drawCoin(coin) {
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
-
     ctx.fillStyle = '#c8a800';
-    ctx.font = `bold ${r * 1.2}px Arial`;
+    ctx.font = `bold ${r}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('$', cx, cy + 1);
+    ctx.fillText('$', cx, cy);
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
 }
 
-function spawnParticles(x, y, color, count = 8, type = 'burst') {
+// ── Частицы ──
+function spawnParticles(x, y, color, count = 8) {
     for (let i = 0; i < count; i++) {
-        const angle = (Math.PI * 2 / count) * i + Math.random() * 0.4;
-        const speed = 2 + Math.random() * 4;
         particles.push({
             x, y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed - (type === 'jump' ? 2 : 0),
+            vx: (Math.random() - 0.5) * 5,
+            vy: (Math.random() - 0.5) * 5 - 2,
             life: 1,
-            decay: 0.04 + Math.random() * 0.03,
+            decay: 0.03,
             size: 4 + Math.random() * 4,
-            color,
-            type
-        });
-    }
-}
-
-function spawnJumpDust(x, y) {
-    for (let i = 0; i < 5; i++) {
-        particles.push({
-            x: x + Math.random() * 30,
-            y,
-            vx: (Math.random() - 0.5) * 2,
-            vy: -Math.random() * 1.5,
-            life: 1,
-            decay: 0.06,
-            size: 6 + Math.random() * 6,
-            color: '#9a7040',
-            type: 'dust'
+            color
         });
     }
 }
@@ -539,7 +462,7 @@ function updateParticles() {
         const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.15;
+        p.vy += 0.2;
         p.life -= p.decay;
         if (p.life <= 0) particles.splice(i, 1);
     }
@@ -549,17 +472,12 @@ function drawParticles() {
     for (let p of particles) {
         ctx.globalAlpha = p.life;
         ctx.fillStyle = p.color;
-        if (p.type === 'dust') {
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-            ctx.fill();
-        } else {
-            ctx.fillRect(p.x, p.y, p.size * p.life, p.size * p.life);
-        }
+        ctx.fillRect(p.x, p.y, p.size, p.size);
     }
     ctx.globalAlpha = 1;
 }
 
+// ── Текст ──
 let floatTexts = [];
 
 function spawnFloatText(x, y, text, color = '#f5d742') {
@@ -569,7 +487,7 @@ function spawnFloatText(x, y, text, color = '#f5d742') {
 function updateFloatTexts() {
     for (let i = floatTexts.length - 1; i >= 0; i--) {
         const t = floatTexts[i];
-        t.y  += t.vy;
+        t.y += t.vy;
         t.life -= 0.03;
         if (t.life <= 0) floatTexts.splice(i, 1);
     }
@@ -587,23 +505,24 @@ function drawFloatTexts() {
     ctx.textAlign = 'left';
 }
 
+// ── Коллизии ──
 function detectCollision(a, b) {
-    return a.x < b.x + b.width  &&
-           a.x + a.width > b.x  &&
+    return a.x < b.x + b.width &&
+           a.x + a.width > b.x &&
            a.y < b.y + b.height &&
            a.y + a.height > b.y;
 }
 
 function getPlayerHitbox() {
-    const margin = 5;
     return {
-        x: player.x + margin,
-        y: player.y + margin,
-        width:  player.width  - margin * 2,
-        height: player.height - margin * 2
+        x: player.x + 5,
+        y: player.y + 5,
+        width: player.width - 10,
+        height: player.height - 10
     };
 }
 
+// ── Физика ──
 function jump(pressDuration = 1.0) {
     if (gameState !== 'playing') return;
     const canJump = player.grounded || (upgrades.doubleJump.level > 0 && player.jumpCount < 2);
@@ -611,18 +530,15 @@ function jump(pressDuration = 1.0) {
 
     vibrate();
 
-    const power    = upgrades.jumpPower.getValue();
+    const power = upgrades.jumpPower.getValue();
     const multiplier = Math.min(1.0 + pressDuration * 0.8, 1.8);
-    player.vy       = -(power * multiplier);
+    player.vy = -(power * multiplier);
     player.grounded = false;
-    player.isJumping = true;
     player.jumpCount++;
-    player.squash   = 0.7;
-
-    spawnJumpDust(player.x, player.y + player.height);
+    player.squash = 0.7;
 
     if (player.jumpCount === 2) {
-        spawnParticles(player.x + player.width / 2, player.y + player.height, '#80d0ff', 6, 'jump');
+        spawnParticles(player.x + player.width / 2, player.y + player.height, '#80d0ff', 6);
     }
 }
 
@@ -645,9 +561,6 @@ function updateComboDisplay() {
     if (comboMultiplier > 1) {
         comboIndicator.classList.remove('hidden');
         comboMultSpan.textContent = comboMultiplier;
-        comboIndicator.style.animation = 'none';
-        void comboIndicator.offsetWidth;
-        comboIndicator.style.animation = 'comboPulse 0.3s ease';
     } else {
         comboIndicator.classList.add('hidden');
     }
@@ -668,12 +581,13 @@ function applyMagnet() {
     if (magnetTimer > 0) magnetTimer--;
 }
 
+// ── Обновление игры ──
 function updateGame() {
     if (gameState !== 'playing') return;
 
     if (player.hasShield && player.shieldTimer > 0) {
         player.shieldTimer--;
-    } else if (player.shieldTimer <= 0) {
+    } else {
         player.hasShield = false;
     }
 
@@ -684,36 +598,35 @@ function updateGame() {
 
     const grav = upgrades.gravity.getValue();
     player.vy += grav;
-    player.y  += player.vy;
+    player.y += player.vy;
 
     if (!player.grounded) {
         player.squash += (1 - player.squash) * 0.15;
-        if (player.vy < 0) player.squash = Math.max(0.75, player.squash);
-        else player.squash = Math.min(1.1, player.squash);
     } else {
         player.squash += (1 - player.squash) * 0.3;
     }
 
     const gY = groundY();
     if (player.y + player.height >= gY + 15) {
-        player.y       = gY + 15 - player.height;
-        player.vy      = 0;
+        player.y = gY + 15 - player.height;
+        player.vy = 0;
         player.grounded = true;
-        player.isJumping = false;
         player.jumpCount = 0;
-        if (player.squash < 0.9) {
-            spawnJumpDust(player.x, player.y + player.height);
-        }
         player.squash = 0.85;
     } else {
         player.grounded = false;
     }
 
     const speed = upgrades.speed.getValue() + Math.min(frame / 600, 3);
+    gameSpeed = speed;
+
     for (let i = obstacles.length - 1; i >= 0; i--) {
         const obs = obstacles[i];
         obs.x -= speed;
-        if (obs.x + obs.width < 0) { obstacles.splice(i, 1); continue; }
+        if (obs.x + obs.width < 0) {
+            obstacles.splice(i, 1);
+            continue;
+        }
 
         if (!obs.passed && obs.x + obs.width < player.x) {
             obs.passed = true;
@@ -726,7 +639,10 @@ function updateGame() {
     for (let i = coins.length - 1; i >= 0; i--) {
         const coin = coins[i];
         coin.x -= speed;
-        if (coin.x + coin.width < 0) { coins.splice(i, 1); continue; }
+        if (coin.x + coin.width < 0) {
+            coins.splice(i, 1);
+            continue;
+        }
     }
 
     applyMagnet();
@@ -738,10 +654,8 @@ function updateGame() {
         if (detectCollision(ph, oh)) {
             if (player.hasShield) {
                 player.hasShield = false;
-                player.shieldTimer = 0;
                 obstacles.splice(obstacles.indexOf(obs), 1);
-                spawnParticles(obs.x + obs.width/2, obs.y, '#00d4ff', 12);
-                vibrate(50);
+                spawnParticles(obs.x + obs.width / 2, obs.y, '#00d4ff', 12);
             } else {
                 gameOver();
                 return;
@@ -754,13 +668,12 @@ function updateGame() {
         if (detectCollision(ph, { x: coin.x, y: coin.y, width: coin.width, height: coin.height })) {
             coins.splice(i, 1);
             const earned = coin.value * comboMultiplier;
-            playerCurrency   += earned;
+            playerCurrency += earned;
             sessionEarnedCoins += earned;
             localStorage.setItem('slimeRunCurrency', playerCurrency);
             updateCurrencyDisplay();
             spawnParticles(coin.x, coin.y, '#f5d742', 6);
             spawnFloatText(coin.x + 8, coin.y, `+${earned}`, '#f5d742');
-            vibrate(10);
         }
     }
 
@@ -777,138 +690,33 @@ function updateGame() {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     drawBg();
     drawGround();
 
     for (let coin of coins) drawCoin(coin);
-    for (let obs  of obstacles) drawObstacle(obs);
-
+    for (let obs of obstacles) drawObstacle(obs);
     drawParticles();
 
     const skin = SKINS[currentSkin];
     drawSlime(player.x, player.y, player.width, player.height, {
-        isSad:     gameState === 'gameOver',
-        eyeStyle:  skin.eyeStyle,
-        color:     skin.color,
+        isSad: gameState === 'gameOver',
+        eyeStyle: skin.eyeStyle,
+        color: skin.color,
         hasShield: player.hasShield,
-        squash:    player.squash
+        squash: player.squash
     });
 
     drawFloatTexts();
 }
-// ── КНОПКА ВЫХОДА И ESC ──
-const exitBtn = document.getElementById('exitBtn');
 
-// Проверяем, в Telegram ли мы
-const isTelegram = window.Telegram?.WebApp !== undefined;
-
-// Функция выхода
-function exitGame() {
-    if (isTelegram) {
-        // В Telegram Mini App
-        Telegram.WebApp.showPopup({
-            title: 'Выход',
-            message: 'Закрыть игру?',
-            buttons: [
-                { id: 'close', type: 'destructive', text: 'Выйти' },
-                { id: 'cancel', type: 'cancel', text: 'Отмена' }
-            ]
-        }, (buttonId) => {
-            if (buttonId === 'close') {
-                Telegram.WebApp.close();
-            }
-        });
-    } else {
-        // В браузере
-        if (confirm('Закрыть игру?')) {
-            window.close();
-            // Если не получилось закрыть
-            setTimeout(() => {
-                alert('Вы можете закрыть вкладку вручную');
-            }, 100);
-        }
-    }
-}
-
-// Обработчик кнопки выхода
-if (exitBtn) {
-    exitBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        exitGame();
-    });
-}
-
-// Обработчик клавиши Escape
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Если игра не активна или открыт какой-то оверлей
-        if (gameState !== 'playing' || 
-            !instructionOverlay.classList.contains('hidden') ||
-            !gameOverOverlay.classList.contains('hidden') ||
-            !shopOverlay.classList.contains('hidden')) {
-            exitGame();
-        } else {
-            // Если игра активна - пауза с вопросом
-            if (isTelegram) {
-                Telegram.WebApp.showPopup({
-                    title: 'Пауза',
-                    message: 'Выйти из игры?',
-                    buttons: [
-                        { id: 'exit', type: 'destructive', text: 'Выйти' },
-                        { id: 'cancel', type: 'cancel', text: 'Продолжить' }
-                    ]
-                }, (buttonId) => {
-                    if (buttonId === 'exit') {
-                        exitGame();
-                    }
-                });
-            } else {
-                if (confirm('Выйти из игры?')) {
-                    exitGame();
-                }
-            }
-        }
-    }
-});
-
-// Для мобильных устройств - обработка кнопки "Назад" в Telegram
-if (isTelegram) {
-    Telegram.WebApp.BackButton.show();
-    Telegram.WebApp.onEvent('backButtonClicked', () => {
-        if (gameState !== 'playing' || 
-            !instructionOverlay.classList.contains('hidden') ||
-            !gameOverOverlay.classList.contains('hidden') ||
-            !shopOverlay.classList.contains('hidden')) {
-            exitGame();
-        } else {
-            Telegram.WebApp.showPopup({
-                title: 'Пауза',
-                message: 'Выйти из игры?',
-                buttons: [
-                    { id: 'exit', type: 'destructive', text: 'Выйти' },
-                    { id: 'cancel', type: 'cancel', text: 'Продолжить' }
-                ]
-            }, (buttonId) => {
-                if (buttonId === 'exit') {
-                    exitGame();
-                }
-            });
-        }
-    });
-}
-
-console.log('Обработчики выхода инициализированы');
+// ── Игровой цикл ──
 function gameLoop() {
     if (gameState === 'playing') updateGame();
     draw();
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
+// ── Сброс ──
 function resetGame() {
     score = 0;
     sessionEarnedCoins = 0;
@@ -923,5 +731,119 @@ function resetGame() {
     floatTexts = [];
     magnetTimer = 0;
 
-    const g
-gameLoop();
+    const gY = groundY();
+    player.y = gY + 15 - player.height;
+    player.vy = 0;
+    player.grounded = true;
+    player.jumpCount = 0;
+    player.squash = 1;
+    player.hasShield = upgrades.shield.level > 0;
+    player.shieldTimer = player.hasShield ? 9999 : 0;
+
+    updateScore();
+    updateCurrencyDisplay();
+    updateComboDisplay();
+    initBg();
+}
+
+function updateScore() {
+    scoreSpan.textContent = score;
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('slimeRunHighScore', highScore);
+        highScoreSpan.textContent = highScore;
+    }
+}
+
+function updateCurrencyDisplay() {
+    coinsSpan.textContent = playerCurrency;
+    if (shopCoinsSpan) shopCoinsSpan.textContent = playerCurrency;
+}
+
+function gameOver() {
+    gameState = 'gameOver';
+    finalScoreSpan.textContent = score;
+    finalHighScoreSpan.textContent = highScore;
+    earnedCoinsSpan.textContent = sessionEarnedCoins;
+    maxComboSpan.textContent = maxComboThisRun;
+
+    const isNew = score >= highScore && score > 0;
+    newRecordBadge.classList.toggle('hidden', !isNew);
+
+    const emojis = ['💀', '😵', '🥺', '😱', '☠️'];
+    document.getElementById('gameOverEmoji').textContent = emojis[Math.floor(Math.random() * emojis.length)];
+
+    gameOverOverlay.classList.remove('hidden');
+
+    if (tg) tg.HapticFeedback?.notificationOccurred('error');
+    spawnParticles(player.x + player.width / 2, player.y, SKINS[currentSkin].color === 'rainbow' ? '#ff4' : SKINS[currentSkin].color, 20);
+}
+
+// ── Магазин ──
+function renderShop() {
+    upgradeItemsContainer.innerHTML = '';
+    for (let [key, up] of Object.entries(upgrades)) {
+        const isMax = up.level >= up.maxLevel;
+        const cost = up.getCost();
+
+        const item = document.createElement('div');
+        item.className = 'shop-item' + (isMax ? ' max-level' : '');
+
+        let valueInfo = '';
+        if (key === 'jumpPower') valueInfo = `Сила: ${up.getValue().toFixed(1)}`;
+        else if (key === 'speed') valueInfo = `Скорость: ${up.getValue().toFixed(1)}`;
+        else if (key === 'gravity') valueInfo = `Лёгкость: ${up.getValue().toFixed(2)}`;
+        else if (key === 'coinMagnet') valueInfo = up.level > 0 ? '✅ Активен' : 'Притягивает монеты';
+        else if (key === 'shield') valueInfo = up.level > 0 ? '✅ Защита' : 'Защита от удара';
+        else if (key === 'doubleJump') valueInfo = up.level > 0 ? '✅ Двойной прыжок' : 'Прыжок в воздухе';
+
+        item.innerHTML = `
+            <div class="shop-item-icon">${up.icon}</div>
+            <div class="shop-item-info">
+                <strong>${up.label}</strong>
+                <span>${valueInfo}</span>
+                <span>Ур. ${up.level}/${up.maxLevel}</span>
+            </div>
+            <div class="shop-item-right">
+                <div class="shop-item-price">${isMax ? 'MAX' : cost + ' 🪙'}</div>
+            </div>
+        `;
+
+        if (!isMax) {
+            item.addEventListener('click', () => purchaseUpgrade(key));
+        }
+        upgradeItemsContainer.appendChild(item);
+    }
+
+    // Скины
+    skinItemsContainer.innerHTML = '';
+    for (let [key, skin] of Object.entries(SKINS)) {
+        const item = document.createElement('div');
+        item.className = 'shop-item' + (skin.equipped ? ' equipped' : '');
+
+        const priceText = !skin.owned ? `${skin.price} 🪙` : (skin.equipped ? '✓ Надет' : 'Надеть');
+
+        item.innerHTML = `
+            <div class="shop-item-icon" style="width:36px;height:36px;background:${skin.color === 'rainbow' ? 'linear-gradient(45deg,red,orange,yellow,green,blue,indigo,violet)' : skin.color};border-radius:50%;"></div>
+            <div class="shop-item-info">
+                <strong>${skin.label}</strong>
+                <span>${skin.owned ? 'Есть' : skin.price + ' монет'}</span>
+            </div>
+            <div class="shop-item-right">
+                <div class="shop-item-price">${priceText}</div>
+            </div>
+        `;
+
+        item.addEventListener('click', () => {
+            if (!skin.owned) purchaseSkin(key);
+            else if (!skin.equipped) equipSkin(key);
+        });
+
+        skinItemsContainer.appendChild(item);
+    }
+}
+
+function purchaseUpgrade(key) {
+    const up = upgrades[key];
+    if (up.level >= up.maxLevel) return;
+   
