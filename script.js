@@ -797,7 +797,112 @@ function draw() {
 
     drawFloatTexts();
 }
+// ── КНОПКА ВЫХОДА И ESC ──
+const exitBtn = document.getElementById('exitBtn');
 
+// Проверяем, в Telegram ли мы
+const isTelegram = window.Telegram?.WebApp !== undefined;
+
+// Функция выхода
+function exitGame() {
+    if (isTelegram) {
+        // В Telegram Mini App
+        Telegram.WebApp.showPopup({
+            title: 'Выход',
+            message: 'Закрыть игру?',
+            buttons: [
+                { id: 'close', type: 'destructive', text: 'Выйти' },
+                { id: 'cancel', type: 'cancel', text: 'Отмена' }
+            ]
+        }, (buttonId) => {
+            if (buttonId === 'close') {
+                Telegram.WebApp.close();
+            }
+        });
+    } else {
+        // В браузере
+        if (confirm('Закрыть игру?')) {
+            window.close();
+            // Если не получилось закрыть
+            setTimeout(() => {
+                alert('Вы можете закрыть вкладку вручную');
+            }, 100);
+        }
+    }
+}
+
+// Обработчик кнопки выхода
+if (exitBtn) {
+    exitBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        exitGame();
+    });
+}
+
+// Обработчик клавиши Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Если игра не активна или открыт какой-то оверлей
+        if (gameState !== 'playing' || 
+            !instructionOverlay.classList.contains('hidden') ||
+            !gameOverOverlay.classList.contains('hidden') ||
+            !shopOverlay.classList.contains('hidden')) {
+            exitGame();
+        } else {
+            // Если игра активна - пауза с вопросом
+            if (isTelegram) {
+                Telegram.WebApp.showPopup({
+                    title: 'Пауза',
+                    message: 'Выйти из игры?',
+                    buttons: [
+                        { id: 'exit', type: 'destructive', text: 'Выйти' },
+                        { id: 'cancel', type: 'cancel', text: 'Продолжить' }
+                    ]
+                }, (buttonId) => {
+                    if (buttonId === 'exit') {
+                        exitGame();
+                    }
+                });
+            } else {
+                if (confirm('Выйти из игры?')) {
+                    exitGame();
+                }
+            }
+        }
+    }
+});
+
+// Для мобильных устройств - обработка кнопки "Назад" в Telegram
+if (isTelegram) {
+    Telegram.WebApp.BackButton.show();
+    Telegram.WebApp.onEvent('backButtonClicked', () => {
+        if (gameState !== 'playing' || 
+            !instructionOverlay.classList.contains('hidden') ||
+            !gameOverOverlay.classList.contains('hidden') ||
+            !shopOverlay.classList.contains('hidden')) {
+            exitGame();
+        } else {
+            Telegram.WebApp.showPopup({
+                title: 'Пауза',
+                message: 'Выйти из игры?',
+                buttons: [
+                    { id: 'exit', type: 'destructive', text: 'Выйти' },
+                    { id: 'cancel', type: 'cancel', text: 'Продолжить' }
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'exit') {
+                    exitGame();
+                }
+            });
+        }
+    });
+}
+
+console.log('Обработчики выхода инициализированы');
 function gameLoop() {
     if (gameState === 'playing') updateGame();
     draw();
@@ -819,3 +924,4 @@ function resetGame() {
     magnetTimer = 0;
 
     const g
+gameLoop();
